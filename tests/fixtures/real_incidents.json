@@ -1,0 +1,70 @@
+[
+  {
+    "id": "hpx-printer-consent-state-snapshot-prod-1",
+    "error_text": "[NUM_COLUMNS_MISMATCH] UNION can only be performed on inputs with the same number of columns, but the first input has 32 columns and the second input has 35 columns. SQLSTATE: 42826",
+    "expected_category": "structural",
+    "documented_root_cause": "schema_commons.py contained pipl_transfer_* columns not present in the current_consent_state Delta version — unionByName() failed without allowMissingColumns=True",
+    "documented_fix": "Updated both unionByName() calls with allowMissingColumns=True",
+    "required_backfill": true
+  },
+  {
+    "id": "cia-to-s3-printer-secure-info-prod-1",
+    "error_text": "Exception: Could not write to destination as dataframe having zero records",
+    "expected_category": "ambiguous",
+    "documented_root_cause": "Upstream feed to ePrint.dbo.PrinterSecureInfo had stopped producing data for 7 days; job logic processes data 2 days older than run date",
+    "documented_fix": "Upstream team resolved the feed; no code change needed on this side",
+    "required_backfill": false
+  },
+  {
+    "id": "psoobe-stream-prod-1",
+    "error_text": "[FIELD_NOT_FOUND] No such struct field `idpId` in `country`, `createdAt`, `email`, `eventTrigger`, `familyName`, `givenName`, `idpType`, `locale`, `messageAttributes`, `updatedAt`, `version`. SQLSTATE: 42704 and Exception: No new psoobe stream data is available for processing",
+    "expected_category": "structural",
+    "documented_root_cause": "dbutils.notebook.run blue/green notebook path branching for the EOS API job resolved incorrectly, causing NotebookExecutionException",
+    "documented_fix": "Replaced dbutils.notebook.run with a direct WorkspaceClient.jobs.run_now(job_id=...) call targeting the EOS job by stable job_id instead of dynamic notebook paths",
+    "required_backfill": false,
+    "note": "Two split signals in one paste — FIELD_NOT_FOUND and 'no new data' — must be treated as related (checkpoint-stall pattern), not two independent incidents."
+  },
+  {
+    "id": "mastiff-rev-gen-prod-1",
+    "error_text": "[PARQUET_TYPE_ILLEGAL] Illegal Parquet type: INT64 (TIMESTAMP(NANOS,false)). SQLSTATE: 42846",
+    "expected_category": "structural",
+    "documented_root_cause": "Upstream schema changed on 20th April — columns removed, renamed, and data types changed in the source Parquet files",
+    "documented_fix": "Upstream team (Ken Mazur) re-processed and re-uploaded corrected-schema files",
+    "required_backfill": true,
+    "backfill_window": "2026-04-20 to latest at time of fix"
+  },
+  {
+    "id": "hpone-devices-prod-1",
+    "error_text": "[DELTA_PATH_BASED_ACCESS_TO_TABLE_BLOCKED]",
+    "expected_category": "structural",
+    "documented_root_cause": "Job used path-based access to a table now requiring Unity Catalog managed table write flow",
+    "documented_fix": "Implemented code changes to support Unity Catalog managed table write flow for hpone_devices",
+    "required_backfill": false,
+    "skipped_jobs": ["aip_subscriber_profile_prod", "er_aip_dsr_supression_prod"]
+  },
+  {
+    "id": "hpone-product-ref-prod-1",
+    "error_text": "Cluster '0817-121124-jrabw8wi' was terminated. Reason: SPARK_ERROR (SERVICE_FAULT). SparkInternalError: Spark error: Driver down cause: driver state change.",
+    "expected_category": "transient",
+    "documented_root_cause": "Databricks infrastructure fault adding workers to the compute cluster — not a code issue",
+    "documented_fix": "None required on the job's code side; retriggered",
+    "required_backfill": false
+  },
+  {
+    "id": "combined-app-instances-prod-timeout-1",
+    "error_text": "TIMED OUT",
+    "expected_category": "transient",
+    "documented_root_cause": "Large number of small files in team_onecloud_prod.cdm_base.stg_simple_ui_v2_software causing shuffle/read performance issues; also a DBR version regression (16.4 rollback fixed it once)",
+    "documented_fix": "Rolled back DBR version to 16.4; separately flagged for OPTIMIZE on the source table",
+    "required_backfill": false,
+    "note": "Real example where 'transient' classification was only PARTIALLY correct — recurred across multiple runs, suggesting a real underlying capacity/config issue, not a one-off blip. Good test case for the recurring-failure check in classify.py."
+  },
+  {
+    "id": "er-printer-current-state-prod-1",
+    "error_text": "KeyError: 'Advertising_New_Common_Purpose_ID'",
+    "expected_category": "structural",
+    "documented_root_cause": "Advertising_New_Common_Purpose_ID present in notebook's default job parameters but missing from prod.yml config",
+    "documented_fix": "Added the missing key to prod.yml with the correct value",
+    "required_backfill": false
+  }
+]
